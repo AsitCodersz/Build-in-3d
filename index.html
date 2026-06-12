@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TECHFEST 2026 — Neural Void</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'Share Tech Mono',monospace;}
+#c{position:fixed;inset:0;display:block;width:100%;height:100%;}
+
+/* HUD */
+#hud{position:fixed;inset:0;pointer-events:none;z-index:10;}
+#logo{position:fixed;top:28px;left:40px;pointer-events:all;}
+.logo-main{font-family:'Orbitron',monospace;font-weight:900;font-size:1.1rem;letter-spacing:.22em;color:#fff;}
+.logo-main span{color:#00ffaa;}
+.logo-sub{font-size:.5rem;letter-spacing:.2em;color:rgba(0,255,170,.4);margin-top:2px;}
+#nav{position:fixed;top:28px;right:40px;display:flex;gap:2rem;pointer-events:all;}
+.nav-btn{
+  font-family:'Share Tech Mono',monospace;font-size:.65rem;letter-spacing:.1em;
+  color:rgba(255,255,255,.45);background:none;border:none;cursor:pointer;
+  text-transform:uppercase;transition:color .2s;padding:4px 0;position:relative;
+}
+.nav-btn::after{content:'';position:absolute;bottom:-2px;left:0;width:0;height:1px;background:#00ffaa;transition:width .3s;}
+.nav-btn:hover,.nav-btn.active{color:#00ffaa;}
+.nav-btn:hover::after,.nav-btn.active::after{width:100%;}
+#reg-btn{
+  font-family:'Share Tech Mono',monospace;font-size:.65rem;letter-spacing:.1em;
+  color:#000;background:#00ffaa;border:none;cursor:pointer;
+  padding:.5rem 1.2rem;transition:all .2s;clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px);
+}
+#reg-btn:hover{background:#ffe500;transform:scale(1.04);}
+
+/* SECTION CONTENT overlays */
+.sec{
+  position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  pointer-events:none;z-index:10;opacity:0;transition:opacity .7s ease;
+}
+.sec.show{opacity:1;pointer-events:all;}
+
+/* HOME */
+#s0{align-items:flex-start;padding:0 0 0 max(4rem,8vw);}
+.kicker{font-size:.62rem;letter-spacing:.35em;color:#00ffaa;text-transform:uppercase;margin-bottom:1.4rem;}
+.kicker::before{content:'▶ ';}
+.big-title{font-family:'Orbitron',monospace;font-weight:900;font-size:clamp(3rem,8vw,7rem);color:#fff;line-height:.9;letter-spacing:-.02em;}
+.big-title .outline{color:transparent;-webkit-text-stroke:2px #00ffaa;}
+.big-title .dim{color:rgba(255,255,255,.15);}
+.tagline{max-width:400px;font-size:.75rem;line-height:1.9;color:rgba(255,255,255,.38);margin:1.8rem 0 2.5rem;letter-spacing:.04em;}
+.actions{display:flex;gap:1.2rem;}
+.btn-p{
+  font-family:'Share Tech Mono',monospace;font-size:.7rem;letter-spacing:.1em;
+  color:#000;background:#00ffaa;border:none;cursor:pointer;padding:.85rem 2.2rem;
+  text-transform:uppercase;clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px);
+  transition:all .25s;
+}
+.btn-p:hover{background:#ffe500;letter-spacing:.18em;}
+.btn-g{
+  font-family:'Share Tech Mono',monospace;font-size:.7rem;letter-spacing:.1em;
+  color:#00ffaa;background:transparent;border:1px solid rgba(0,255,170,.3);cursor:pointer;
+  padding:.85rem 1.8rem;text-transform:uppercase;
+  clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px);
+  transition:all .25s;
+}
+.btn-g:hover{border-color:#00ffaa;background:rgba(0,255,170,.07);}
+
+/* STATS strip */
+#stats{
+  position:fixed;bottom:3.5rem;left:max(4rem,8vw);display:flex;gap:3rem;
+  pointer-events:none;z-index:15;transition:opacity .6s;
+}
+.st-n{font-family:'Orbitron',monospace;font-size:2rem;font-weight:700;color:#00ffaa;line-height:1;}
+.st-l{font-size:.54rem;letter-spacing:.18em;color:rgba(0,255,170,.35);text-transform:uppercase;margin-top:3px;}
+
+/* COUNTDOWN */
+#countdown{
+  position:fixed;bottom:3.5rem;right:40px;display:flex;gap:1rem;align-items:center;
+  pointer-events:none;z-index:15;transition:opacity .6s;
+}
+.cd{text-align:center;}
+.cd-n{font-family:'Orbitron',monospace;font-size:1.6rem;font-weight:700;color:#00ffaa;line-height:1;text-shadow:0 0 15px rgba(0,255,170,.5);}
+.cd-l{font-size:.5rem;letter-spacing:.15em;color:rgba(0,255,170,.35);text-transform:uppercase;}
+.cd-sep{font-size:1.4rem;color:rgba(0,255,170,.25);margin-bottom:4px;}
+
+/* SCROLL hint */
+#scroll-hint{
+  position:fixed;bottom:3rem;left:50%;transform:translateX(-50%);
+  display:flex;flex-direction:column;align-items:center;gap:.5rem;
+  pointer-events:none;z-index:15;transition:opacity .6s;
+}
+#scroll-hint span{font-size:.52rem;letter-spacing:.25em;color:rgba(255,255,255,.2);text-transform:uppercase;}
+.sh-line{width:1px;height:44px;background:linear-gradient(#00ffaa,transparent);animation:shAnim 2s ease-in-out infinite;}
+@keyframes shAnim{0%{transform:scaleY(0);transform-origin:top}50%{transform:scaleY(1);transform-origin:top}50.01%{transform-origin:bottom}100%{transform:scaleY(0);transform-origin:bottom}}
+
+/* SECTION DOTS */
+#dots{
+  position:fixed;right:18px;top:50%;transform:translateY(-50%);
+  display:flex;flex-direction:column;gap:.7rem;z-index:20;pointer-events:all;
+}
+.dot{
+  width:5px;height:5px;border-radius:50%;border:1px solid rgba(0,255,170,.35);
+  cursor:pointer;transition:all .3s;
+}
+.dot.on{background:#00ffaa;box-shadow:0 0 8px #00ffaa;border-color:#00ffaa;}
+
+/* EVENTS grid */
+#s1{padding:5rem 2rem 2rem;}
+.grid-wrap{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:rgba(0,255,170,.12);border:1px solid rgba(0,255,170,.15);max-width:1000px;width:100%;}
+.track{
+  background:rgba(0,0,0,.85);padding:1.6rem;cursor:pointer;position:relative;overflow:hidden;
+  transition:background .3s;
+}
+.track::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,#00ffaa,transparent);
+  transform:scaleX(0);transition:transform .4s;
+}
+.track:hover{background:rgba(0,255,170,.05);}
+.track:hover::before{transform:scaleX(1);}
+.t-num{font-size:.52rem;letter-spacing:.25em;color:rgba(0,255,170,.3);text-transform:uppercase;margin-bottom:.8rem;}
+.t-icon{font-size:1.4rem;margin-bottom:.7rem;display:block;}
+.t-name{font-family:'Orbitron',monospace;font-weight:700;font-size:.95rem;color:#fff;margin-bottom:.4rem;}
+.t-desc{font-size:.62rem;line-height:1.7;color:rgba(255,255,255,.35);}
+.t-pill{margin-top:1rem;font-size:.52rem;letter-spacing:.1em;color:rgba(0,255,170,.5);border:1px solid rgba(0,255,170,.2);padding:.25rem .7rem;display:inline-block;}
+.t-arr{position:absolute;bottom:1rem;right:1.2rem;color:rgba(0,255,170,.22);font-size:.7rem;transition:all .3s;}
+.track:hover .t-arr{color:#00ffaa;transform:translate(3px,-3px);}
+
+/* SPEAKERS */
+#s2{gap:1.5rem;}
+.spk-grid{display:grid;grid-template-columns:repeat(4,220px);gap:1rem;max-width:960px;}
+.spk{
+  background:rgba(0,0,0,.8);border:1px solid rgba(0,255,170,.15);
+  padding:1.3rem;cursor:pointer;transition:all .35s;
+  clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,14px 100%,0 calc(100% - 14px));
+}
+.spk:hover{border-color:rgba(255,80,120,.6);transform:translateY(-5px);}
+.spk-av{
+  width:54px;height:54px;border-radius:50%;margin-bottom:.8rem;
+  background:linear-gradient(135deg,rgba(0,255,170,.25),rgba(255,80,120,.25));
+  border:1px solid rgba(0,255,170,.2);display:flex;align-items:center;justify-content:center;
+  font-family:'Orbitron',monospace;font-weight:700;font-size:.95rem;color:#fff;
+}
+.spk-name{font-family:'Orbitron',monospace;font-size:.72rem;font-weight:700;color:#fff;margin-bottom:.2rem;}
+.spk-role{font-size:.57rem;color:rgba(0,255,170,.4);margin-bottom:.4rem;letter-spacing:.04em;}
+.spk-topic{font-size:.6rem;color:#ffe500;font-style:italic;}
+
+/* REGISTER */
+#s3{flex-direction:row;gap:4rem;align-items:center;}
+.rl{flex:1;max-width:380px;}
+.rl-ey{font-size:.58rem;letter-spacing:.28em;color:#00ffaa;text-transform:uppercase;margin-bottom:.8rem;}
+.rl-title{font-family:'Orbitron',monospace;font-weight:900;font-size:clamp(1.8rem,3vw,2.8rem);color:#fff;line-height:1.1;margin-bottom:1rem;}
+.rl-title em{font-style:normal;color:#00ffaa;}
+.rl-desc{font-size:.65rem;line-height:1.9;color:rgba(255,255,255,.35);margin-bottom:1.5rem;}
+.passes{display:flex;flex-direction:column;gap:.6rem;}
+.pass{
+  display:flex;align-items:center;justify-content:space-between;
+  border:1px solid rgba(0,255,170,.15);padding:.8rem 1rem;cursor:pointer;
+  transition:all .25s;background:rgba(0,255,170,.03);
+  clip-path:polygon(7px 0,100% 0,100% calc(100% - 7px),calc(100% - 7px) 100%,0 100%,0 7px);
+}
+.pass:hover,.pass.sel{border-color:#00ffaa;background:rgba(0,255,170,.07);}
+.pass.sel .pc{background:#00ffaa;}
+.pi{font-family:'Share Tech Mono',monospace;}
+.pn{font-size:.68rem;color:#fff;}
+.pp{font-size:.58rem;color:rgba(0,255,170,.4);margin-top:2px;}
+.pc{width:12px;height:12px;border-radius:50%;border:1px solid rgba(0,255,170,.3);transition:background .2s;}
+.rr{width:420px;}
+.fp{
+  background:rgba(0,0,0,.85);border:1px solid rgba(0,255,170,.18);
+  padding:2.2rem;backdrop-filter:blur(12px);
+  clip-path:polygon(0 0,calc(100% - 18px) 0,100% 18px,100% 100%,18px 100%,0 calc(100% - 18px));
+}
+.fp h3{font-family:'Orbitron',monospace;font-size:.9rem;color:#fff;margin-bottom:1.5rem;display:flex;align-items:center;gap:.6rem;}
+.fp h3::after{content:'';flex:1;height:1px;background:rgba(0,255,170,.15);}
+.fr{display:grid;grid-template-columns:1fr 1fr;gap:.8rem;margin-bottom:.8rem;}
+.fg{margin-bottom:.8rem;}
+.fl{display:block;font-size:.54rem;letter-spacing:.12em;color:rgba(0,255,170,.5);text-transform:uppercase;margin-bottom:.35rem;}
+.fi,.fs{
+  width:100%;background:rgba(0,0,0,.6);border:1px solid rgba(0,255,170,.14);
+  padding:.65rem .85rem;color:#e8f8f0;font-family:'Share Tech Mono',monospace;font-size:.7rem;
+  outline:none;transition:border-color .25s;appearance:none;
+}
+.fi:focus,.fs:focus{border-color:#00ffaa;}
+.fi::placeholder{color:rgba(255,255,255,.18);}
+.fs option{background:#050505;color:#e8f8f0;}
+.fsub{
+  width:100%;margin-top:.3rem;padding:.95rem;border:none;cursor:pointer;
+  font-family:'Orbitron',monospace;font-weight:700;font-size:.75rem;
+  letter-spacing:.12em;text-transform:uppercase;
+  background:linear-gradient(90deg,#00ffaa,#00c8ff);color:#000;
+  clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px);
+  transition:all .25s;
+}
+.fsub:hover{background:linear-gradient(90deg,#ffe500,#00ffaa);letter-spacing:.2em;}
+
+/* SUCCESS */
+#succ{display:none;text-align:center;padding:2rem 0;}
+.succ-ico{font-size:2.8rem;margin-bottom:1rem;animation:pulse 2s infinite;}
+.succ-h{font-family:'Orbitron',monospace;font-size:1.3rem;color:#00ffaa;margin-bottom:.6rem;}
+.succ-t{font-size:.65rem;color:rgba(255,255,255,.4);line-height:1.9;}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+
+/* MODAL */
+#mo{
+  position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.88);backdrop-filter:blur(6px);
+  opacity:0;pointer-events:none;transition:opacity .35s;
+  display:flex;align-items:center;justify-content:center;
+}
+#mo.open{opacity:1;pointer-events:all;}
+.mbox{
+  background:#05050f;border:1px solid rgba(0,255,170,.2);max-width:560px;width:90%;
+  clip-path:polygon(0 0,calc(100% - 24px) 0,100% 24px,100% 100%,24px 100%,0 calc(100% - 24px));
+  transform:scale(.9);transition:transform .35s cubic-bezier(.34,1.56,.64,1);position:relative;
+  overflow:hidden;
+}
+#mo.open .mbox{transform:scale(1);}
+.mtop{
+  background:linear-gradient(135deg,rgba(0,255,170,.07),transparent);
+  padding:2rem 2.2rem 1.4rem;border-bottom:1px solid rgba(0,255,170,.12);
+}
+.mtag{font-size:.55rem;letter-spacing:.25em;color:#00ffaa;text-transform:uppercase;margin-bottom:.5rem;}
+.mttl{font-family:'Orbitron',monospace;font-weight:900;font-size:1.5rem;color:#fff;}
+.mbod{padding:1.6rem 2.2rem;}
+.mdesc{font-size:.67rem;line-height:1.85;color:rgba(255,255,255,.42);margin-bottom:1.3rem;}
+.mmeta{display:grid;grid-template-columns:repeat(3,1fr);gap:.8rem;margin-bottom:1.3rem;}
+.mk{background:rgba(0,255,170,.04);border:1px solid rgba(0,255,170,.12);padding:.7rem;}
+.mk-l{font-size:.5rem;letter-spacing:.15em;color:rgba(0,255,170,.38);text-transform:uppercase;}
+.mk-v{font-family:'Orbitron',monospace;font-size:.85rem;color:#fff;margin-top:.2rem;}
+.mft{display:flex;gap:.8rem;padding:.5rem 2.2rem 1.5rem;}
+.mb1{flex:1;padding:.7rem;background:#00ffaa;color:#000;border:none;font-family:'Share Tech Mono',monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;clip-path:polygon(5px 0,100% 0,100% calc(100% - 5px),calc(100% - 5px) 100%,0 100%,0 5px);transition:all .2s;}
+.mb1:hover{background:#ffe500;}
+.mb2{padding:.7rem 1.2rem;background:transparent;color:rgba(0,255,170,.5);border:1px solid rgba(0,255,170,.2);font-family:'Share Tech Mono',monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;clip-path:polygon(5px 0,100% 0,100% calc(100% - 5px),calc(100% - 5px) 100%,0 100%,0 5px);transition:all .2s;}
+.mb2:hover{border-color:#00ffaa;color:#00ffaa;}
+.mcls{position:absolute;top:1rem;right:1.2rem;background:none;border:1px solid rgba(0,255,170,.2);color:rgba(0,255,170,.5);width:28px;height:28px;cursor:pointer;font-size:.85rem;display:flex;align-items:center;justify-content:center;transition:all .2s;}
+.mcls:hover{border-color:red;color:red;}
+
+/* PROGRESS BAR */
+#pb{position:fixed;top:0;left:0;height:2px;z-index:200;background:linear-gradient(90deg,#00ffaa,#ff507a);box-shadow:0 0 10px #00ffaa;transition:width .6s cubic-bezier(.4,0,.2,1);}
+
+/* TICKER */
+#tkr{
+  position:fixed;bottom:0;left:0;right:0;z-index:30;
+  background:rgba(0,0,0,.92);border-top:1px solid rgba(0,255,170,.12);
+  padding:.48rem 0;overflow:hidden;
+}
+.ti{display:flex;gap:0;animation:tkAnim 35s linear infinite;width:max-content;}
+.ti-item{font-size:.56rem;letter-spacing:.1em;color:rgba(0,255,170,.38);text-transform:uppercase;padding:0 2.2rem;white-space:nowrap;}
+.ti-item::before{content:'◆  ';color:#00ffaa;font-size:.35rem;}
+@keyframes tkAnim{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+
+/* COORDINATE HUD */
+#coords{position:fixed;left:40px;bottom:4.5rem;font-size:.52rem;color:rgba(0,255,170,.18);letter-spacing:.05em;pointer-events:none;z-index:15;}
+
+/* SCANLINES + VIGNETTE */
+#scan{position:fixed;inset:0;pointer-events:none;z-index:5;background:repeating-linear-gradient(to bottom,transparent,transparent 2px,rgba(0,0,0,.04) 2px,rgba(0,0,0,.04) 4px);}
+#vig{position:fixed;inset:0;pointer-events:none;z-index:5;background:radial-gradient(ellipse 85% 85% at 50% 50%,transparent 35%,rgba(0,0,0,.65) 100%);}
+
+/* CURSOR */
+#cr{position:fixed;pointer-events:none;z-index:1000;width:32px;height:32px;border-radius:50%;border:1.5px solid #00ffaa;transform:translate(-50%,-50%);transition:width .2s,height .2s,border-color .2s;mix-blend-mode:screen;}
+#cd{position:fixed;pointer-events:none;z-index:1000;width:4px;height:4px;border-radius:50%;background:#00ffaa;transform:translate(-50%,-50%);box-shadow:0 0 6px #00ffaa;}
+body.hov #cr{width:50px;height:50px;border-color:#ff507a;}
+</style>
+</head>
+<body>
+
+<div id="cr"></div><div id="cd"></div>
+<div id="pb" style="width:0%"></div>
+<canvas id="c"></canvas>
+<div id="scan"></div>
+<div id="vig"></div>
+
+<!-- HEADER -->
+<header>
+<div id="logo">
+  <div class="logo-main">TECH<span>FEST</span></div>
+  <div class="logo-sub">Neural Void · Oct 17–19 2026</div>
+</div>
+<nav id="nav">
+  <button class="nav-btn active" id="nb0" onclick="goSec(0)">Home</button>
+  <button class="nav-btn" id="nb1" onclick="goSec(1)">Events</button>
+  <button class="nav-btn" id="nb2" onclick="goSec(2)">Speakers</button>
+  <button id="reg-btn" onclick="goSec(3)">Register ↗</button>
+</nav>
+</header>
+
+<!-- DOTS -->
+<div id="dots">
+  <div class="dot on" onclick="goSec(0)"></div>
+  <div class="dot" onclick="goSec(1)"></div>
+  <div class="dot" onclick="goSec(2)"></div>
+  <div class="dot" onclick="goSec(3)"></div>
+</div>
+
+<!-- HOME -->
+<div class="sec show" id="s0">
+  <div class="kicker">Neural Void · Techfest 2026</div>
+  <h1 class="big-title">BUILD<br><span class="outline">THE</span><br><span class="dim">FUTURE.</span></h1>
+  <p class="tagline">Three days at the intersection of AI, quantum biology,<br>and machine consciousness. Where the next decade is built.</p>
+  <div class="actions">
+    <button class="btn-p" onclick="goSec(3)">Claim Access</button>
+    <button class="btn-g" onclick="goSec(1)">Explore Tracks</button>
+  </div>
+</div>
+
+<!-- EVENTS -->
+<div class="sec" id="s1">
+  <div style="text-align:center;margin-bottom:2rem;">
+    <div style="font-size:.58rem;letter-spacing:.3em;color:#00ffaa;text-transform:uppercase;margin-bottom:.6rem;">◈ 54 Sessions · 6 Tracks · 3 Days</div>
+    <div style="font-family:'Orbitron',monospace;font-weight:900;font-size:clamp(1.8rem,4vw,3rem);color:#fff;">Explore the <span style="color:#00ffaa">Void</span></div>
+  </div>
+  <div class="grid-wrap">
+    <div class="track" onclick="om('ai')"><div class="t-num">01 // AI & COGNITION</div><span class="t-icon">⬡</span><div class="t-name">Neural Architectures</div><div class="t-desc">LLMs, multimodal systems, emergent reasoning and machine cognition.</div><div class="t-pill">14 sessions</div><div class="t-arr">↗</div></div>
+    <div class="track" onclick="om('quantum')"><div class="t-num">02 // QUANTUM</div><span class="t-icon">◉</span><div class="t-name">Qubit Horizon</div><div class="t-desc">Fault-tolerant computing, quantum advantage, post-classical algorithms.</div><div class="t-pill">9 sessions</div><div class="t-arr">↗</div></div>
+    <div class="track" onclick="om('bio')"><div class="t-num">03 // BIOTECH</div><span class="t-icon">⟡</span><div class="t-name">Synthetic Biology</div><div class="t-desc">CRISPR 3.0, programmable organisms, AI drug discovery pipelines.</div><div class="t-pill">11 sessions</div><div class="t-arr">↗</div></div>
+    <div class="track" onclick="om('rob')"><div class="t-num">04 // ROBOTICS</div><span class="t-icon">◫</span><div class="t-name">Embodied Minds</div><div class="t-desc">Humanoid systems, swarm intelligence, ethics of autonomous machines.</div><div class="t-pill">10 sessions</div><div class="t-arr">↗</div></div>
+    <div class="track" onclick="om('space')"><div class="t-num">05 // SPACE TECH</div><span class="t-icon">◎</span><div class="t-name">Orbital Systems</div><div class="t-desc">Satellite autonomy, Mars architectures, deep-space communications.</div><div class="t-pill">7 sessions</div><div class="t-arr">↗</div></div>
+    <div class="track" onclick="om('sec')"><div class="t-num">06 // SECURITY</div><span class="t-icon">◪</span><div class="t-name">Zero Perimeter</div><div class="t-desc">Post-quantum cryptography, AI red-teaming, adversarial ML.</div><div class="t-pill">8 sessions</div><div class="t-arr">↗</div></div>
+  </div>
+</div>
+
+<!-- SPEAKERS -->
+<div class="sec" id="s2">
+  <div style="text-align:center;margin-bottom:2rem;">
+    <div style="font-size:.58rem;letter-spacing:.3em;color:#00ffaa;text-transform:uppercase;margin-bottom:.6rem;">◈ Keynote Speakers</div>
+    <div style="font-family:'Orbitron',monospace;font-weight:900;font-size:clamp(1.8rem,4vw,3rem);color:#fff;">The <span style="color:#00ffaa">Architects</span></div>
+  </div>
+  <div class="spk-grid">
+    <div class="spk" onclick="om('sp_aria')"><div class="spk-av">AK</div><div class="spk-name">Dr. Aria Kwan</div><div class="spk-role">Chief AI Scientist · NeuraLab</div><div class="spk-topic">Machine Consciousness</div></div>
+    <div class="spk" onclick="om('sp_marco')"><div class="spk-av">MV</div><div class="spk-name">Marco Vasquez</div><div class="spk-role">CTO · QuantumBridge</div><div class="spk-topic">Quantum Error Correction</div></div>
+    <div class="spk" onclick="om('sp_yuki')"><div class="spk-av">YN</div><div class="spk-name">Yuki Nishida</div><div class="spk-role">Founder · EmbodiedAI</div><div class="spk-topic">Sentient Robotics</div></div>
+    <div class="spk" onclick="om('sp_priya')"><div class="spk-av">PS</div><div class="spk-name">Dr. Priya Shah</div><div class="spk-role">Head of Genomics · BioForge</div><div class="spk-topic">CRISPR 3.0 in Humans</div></div>
+  </div>
+</div>
+
+<!-- REGISTER -->
+<div class="sec" id="s3">
+  <div class="rl">
+    <div class="rl-ey">◈ Secure Your Node</div>
+    <h2 class="rl-title">Enter the <em>Void.</em></h2>
+    <p class="rl-desc">Limited access passes · Oct 17–19 2026<br>Mumbai Convention Centre · Bay 7–12</p>
+    <div class="passes">
+      <div class="pass" onclick="selPass(this,'explorer')"><div class="pi"><div class="pn">Explorer Pass</div><div class="pp">All 3 days · General Access</div></div><div class="pc"></div></div>
+      <div class="pass" onclick="selPass(this,'innovator')"><div class="pi"><div class="pn">Innovator Pass</div><div class="pp">Workshops + VIP Lounge</div></div><div class="pc"></div></div>
+      <div class="pass" onclick="selPass(this,'pioneer')"><div class="pi"><div class="pn">Pioneer Pass</div><div class="pp">Full · Speaker Dinners + Lab Tours</div></div><div class="pc"></div></div>
+    </div>
+  </div>
+  <div class="rr">
+    <div class="fp">
+      <div id="fv">
+        <h3>Registration</h3>
+        <div class="fr">
+          <div><label class="fl">First Name</label><input class="fi" id="fn" placeholder="Aria" autocomplete="off"/></div>
+          <div><label class="fl">Last Name</label><input class="fi" id="ln" placeholder="Kwan" autocomplete="off"/></div>
+        </div>
+        <div class="fg"><label class="fl">Email</label><input class="fi" id="em" type="email" placeholder="you@neural.void" autocomplete="off"/></div>
+        <div class="fg"><label class="fl">Organization</label><input class="fi" id="org" placeholder="NeuraLab / Independent" autocomplete="off"/></div>
+        <div class="fg">
+          <label class="fl">Primary Track</label>
+          <select class="fs" id="trk">
+            <option value="">— Select a track —</option>
+            <option>Neural Architectures (AI)</option>
+            <option>Qubit Horizon (Quantum)</option>
+            <option>Synthetic Biology (Biotech)</option>
+            <option>Embodied Minds (Robotics)</option>
+            <option>Orbital Systems (Space)</option>
+            <option>Zero Perimeter (Security)</option>
+          </select>
+        </div>
+        <button class="fsub" onclick="subReg()">Initialize Access ↗</button>
+      </div>
+      <div id="succ">
+        <div class="succ-ico">⬡</div>
+        <div class="succ-h">Node Registered</div>
+        <div class="succ-t">Encrypted credentials dispatched.<br>Prepare for Neural Void — Oct 17.<br><br>Mumbai Convention Centre · Bay 7–12</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- STATS / COUNTDOWN / SCROLL HINT -->
+<div id="stats">
+  <div><div class="st-n">54<span style="font-size:1.2rem">+</span></div><div class="st-l">Sessions</div></div>
+  <div><div class="st-n">28</div><div class="st-l">Speakers</div></div>
+  <div><div class="st-n">3</div><div class="st-l">Days</div></div>
+  <div><div class="st-n">6k+</div><div class="st-l">Attendees</div></div>
+</div>
+<div id="countdown">
+  <div class="cd"><div class="cd-n" id="cdd">132</div><div class="cd-l">Days</div></div>
+  <div class="cd-sep">:</div>
+  <div class="cd"><div class="cd-n" id="cdh">14</div><div class="cd-l">Hrs</div></div>
+  <div class="cd-sep">:</div>
+  <div class="cd"><div class="cd-n" id="cdm">27</div><div class="cd-l">Min</div></div>
+  <div class="cd-sep">:</div>
+  <div class="cd"><div class="cd-n" id="cds">08</div><div class="cd-l">Sec</div></div>
+</div>
+<div id="scroll-hint"><span>Scroll to navigate</span><div class="sh-line"></div></div>
+<div id="coords">X: 0.000 &nbsp; Y: 0.000 &nbsp; Z: 0.000</div>
+
+<!-- TICKER -->
+<div id="tkr">
+  <div class="ti" id="ti"></div>
+</div>
+
+<!-- MODAL -->
+<div id="mo" onclick="if(event.target===this)cm()">
+  <div class="mbox">
+    <button class="mcls" onclick="cm()">✕</button>
+    <div class="mtop"><div class="mtag" id="mtag"></div><div class="mttl" id="mttl"></div></div>
+    <div class="mbod">
+      <div class="mdesc" id="mdesc"></div>
+      <div class="mmeta" id="mmeta"></div>
+    </div>
+    <div class="mft">
+      <button class="mb1" onclick="goSec(3);cm()">Register ↗</button>
+      <button class="mb2" onclick="cm()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- THREE.JS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// =================================================================
+//  FULL 3D SCENE — SCROLL-DRIVEN CAMERA FLIGHT
+// =================================================================
+const W = ()=>window.innerWidth, H = ()=>window.innerHeight;
+const renderer = new THREE.WebGLRenderer({canvas:document.getElementById('c'),antialias:true,alpha:false});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setSize(W(),H());
+renderer.setClearColor(0x000005,1);
+renderer.shadowMap.enabled = true;
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x000005, 0.022);
+
+const camera = new THREE.PerspectiveCamera(70,W()/H(),.1,600);
+
+// ── LIGHTS ──────────────────────────────────────────────────────
+scene.add(new THREE.AmbientLight(0x001a0d,2));
+const pl1 = new THREE.PointLight(0x00ffaa,4,60); pl1.position.set(0,6,0); scene.add(pl1);
+const pl2 = new THREE.PointLight(0xff507a,3,50); pl2.position.set(-10,-4,-10); scene.add(pl2);
+const pl3 = new THREE.PointLight(0x00aaff,2,40); pl3.position.set(14,8,-30); scene.add(pl3);
+const pl4 = new THREE.PointLight(0xffe500,2,35); pl4.position.set(0,-6,-60); scene.add(pl4);
+
+// ── HELPERS ─────────────────────────────────────────────────────
+function wireMesh(geo,col,op=.5){
+  const e=new THREE.EdgesGeometry(geo,10);
+  const m=new THREE.LineSegments(e,new THREE.LineBasicMaterial({color:col,transparent:true,opacity:op,blending:THREE.AdditiveBlending}));
+  return m;
+}
+function addGlow(pos,col,size=1.5){
+  const s=new THREE.Sprite(new THREE.SpriteMaterial({color:col,transparent:true,opacity:.35,blending:THREE.AdditiveBlending}));
+  s.scale.set(size,size,1);s.position.copy(pos);scene.add(s);
+}
+
+// ── SECTION 0 OBJECTS: Giant Torus Knot + Neural Network ────────
+// Central torus knot
+const tkGeo = new THREE.TorusKnotGeometry(4,.7,180,24,3,5);
+const tkWire = wireMesh(tkGeo,0x00ffaa,.45);
+tkWire.position.set(8,0,0);
+scene.add(tkWire);
+const tkInner = new THREE.Mesh(tkGeo,new THREE.MeshBasicMaterial({color:0x000005,side:THREE.BackSide,transparent:true,opacity:.9}));
+tkInner.position.copy(tkWire.position);scene.add(tkInner);
+addGlow(new THREE.Vector3(8,0,0),0x00ffaa,8);
+
+// Orbital rings around knot
+const orbRings=[];
+for(let i=0;i<5;i++){
+  const rg=new THREE.TorusGeometry(5+i*1.1,.03,8,100);
+  const rm=new THREE.Mesh(rg,new THREE.MeshBasicMaterial({color:i%2?0x00ffaa:0xff507a,transparent:true,opacity:.12-i*.01,blending:THREE.AdditiveBlending}));
+  rm.position.copy(tkWire.position);
+  rm.rotation.set(i*.6,i*.4,0);
+  rm.userData={rx:(i%2?.0008:-.0005),ry:.0012+i*.0003};
+  orbRings.push(rm);scene.add(rm);
+}
+
+// Neural nodes (section 0 area)
+const nodeArr=[];
+for(let i=0;i<80;i++){
+  const r=8+Math.random()*16;
+  const th=Math.random()*Math.PI*2,ph=Math.acos(2*Math.random()-1);
+  const p=new THREE.Vector3(r*Math.sin(ph)*Math.cos(th)-8,r*Math.sin(ph)*Math.sin(ph)*.5,r*Math.cos(ph));
+  const s=Math.random()>.8?.22:.08+Math.random()*.08;
+  const m=new THREE.Mesh(new THREE.SphereGeometry(s,6,6),new THREE.MeshBasicMaterial({color:Math.random()>.65?0xff507a:0x00ffaa,transparent:true,opacity:.5+Math.random()*.5}));
+  m.position.copy(p);
+  m.userData={bp:p.clone(),ph:Math.random()*Math.PI*2,sp:.004+Math.random()*.004,amp:.1+Math.random()*.15};
+  scene.add(m);nodeArr.push(m);
+}
+// Edges
+const ev=[];
+for(let i=0;i<80;i++)for(let j=i+1;j<80;j++){
+  const d=nodeArr[i].position.distanceTo(nodeArr[j].position);
+  if(d<6){ev.push(...nodeArr[i].position.toArray(),...nodeArr[j].position.toArray());}
+}
+const eGeo=new THREE.BufferGeometry();
+eGeo.setAttribute('position',new THREE.Float32BufferAttribute(ev,3));
+scene.add(new THREE.LineSegments(eGeo,new THREE.LineBasicMaterial({color:0x00ffaa,transparent:true,opacity:.12,blending:THREE.AdditiveBlending})));
+
+// ── TUNNEL: camera flies through this ────────────────────────────
+// A long winding path: define waypoints
+const PATH_POINTS = [
+  new THREE.Vector3(0,0,20),         // start (home view)
+  new THREE.Vector3(-3,2,5),
+  new THREE.Vector3(5,-1,-10),       // events zone
+  new THREE.Vector3(-6,4,-25),
+  new THREE.Vector3(8,2,-42),        // speakers zone
+  new THREE.Vector3(-4,-3,-58),
+  new THREE.Vector3(0,0,-75),        // register zone
+];
+const camPath = new THREE.CatmullRomCurve3(PATH_POINTS, false, 'catmullrom', .5);
+
+// Look-at targets along path
+const LOOK_POINTS = [
+  new THREE.Vector3(8,0,0),
+  new THREE.Vector3(0,0,-5),
+  new THREE.Vector3(0,0,-18),
+  new THREE.Vector3(0,0,-35),
+  new THREE.Vector3(0,0,-52),
+  new THREE.Vector3(0,0,-65),
+  new THREE.Vector3(0,0,-80),
+];
+const lookPath = new THREE.CatmullRomCurve3(LOOK_POINTS);
+
+// ── SECTION 1 OBJECTS: Floating data cubes ──────────────────────
+const cubes=[];
+const cubePositions=[
+  [-14,3,-18],[-8,-4,-22],[0,6,-16],[8,2,-20],[14,-3,-18],
+  [-10,6,-28],[4,-5,-24],[12,4,-26],[-16,-2,-30],[6,7,-32],
+];
+cubePositions.forEach(([x,y,z],i)=>{
+  const sz=.6+Math.random()*.8;
+  const g=new THREE.BoxGeometry(sz,sz,sz);
+  const w=wireMesh(g,Math.random()>.5?0x00ffaa:0x00aaff,.6);
+  w.position.set(x,y,z);
+  w.userData={rx:.004+i*.001,ry:.006+i*.0008,bp:new THREE.Vector3(x,y,z),ph:Math.random()*Math.PI*2};
+  scene.add(w);cubes.push(w);
+  addGlow(new THREE.Vector3(x,y,z),0x00ffaa,sz*2.5);
+});
+
+// ── SECTION 2 OBJECTS: Icosahedra constellation ─────────────────
+const icoArr=[];
+const icoPos=[
+  [-12,5,-44],[-4,8,-40],[6,4,-46],[14,7,-42],[-8,-5,-48],
+  [2,-6,-44],[10,-4,-50],[-14,-3,-52],[0,10,-56],[16,-6,-54],
+];
+icoPos.forEach(([x,y,z],i)=>{
+  const s=.7+Math.random()*.9;
+  const g=new THREE.IcosahedronGeometry(s,0);
+  const w=wireMesh(g,Math.random()>.5?0xff507a:0xffe500,.55);
+  w.position.set(x,y,z);
+  w.userData={rx:.003+i*.0006,ry:.005+i*.0007,bp:new THREE.Vector3(x,y,z),ph:Math.random()*Math.PI*2};
+  scene.add(w);icoArr.push(w);
+  addGlow(new THREE.Vector3(x,y,z),0xff507a,s*3);
+});
+// Connecting lines between speaker positions  
+const spkPositions=[new THREE.Vector3(-12,5,-44),new THREE.Vector3(6,4,-46),new THREE.Vector3(-4,8,-40),new THREE.Vector3(14,7,-42)];
+const slv=[];spkPositions.forEach((a,i)=>spkPositions.forEach((b,j)=>{if(j>i)slv.push(...a.toArray(),...b.toArray());}));
+const slg=new THREE.BufferGeometry();slg.setAttribute('position',new THREE.Float32BufferAttribute(slv,3));
+scene.add(new THREE.LineSegments(slg,new THREE.LineBasicMaterial({color:0xff507a,transparent:true,opacity:.2,blending:THREE.AdditiveBlending})));
+
+// ── SECTION 3 OBJECTS: Crystal/gem formation ────────────────────
+const crystals=[];
+const crystalPos=[
+  [-10,4,-68],[-4,8,-64],[4,6,-70],[10,3,-66],[-7,-5,-72],
+  [3,-4,-68],[8,-6,-74],[0,10,-78],[-12,-2,-76],[6,9,-80],
+];
+crystalPos.forEach(([x,y,z],i)=>{
+  const s=.5+Math.random()*.7;
+  const g=new THREE.OctahedronGeometry(s,0);
+  const col=i%3===0?0x00ffaa:i%3===1?0xffe500:0x00aaff;
+  const w=wireMesh(g,col,.7);
+  w.position.set(x,y,z);
+  w.userData={rx:.005+i*.001,ry:.007+i*.0009,bp:new THREE.Vector3(x,y,z),ph:Math.random()*Math.PI*2};
+  scene.add(w);crystals.push(w);
+  addGlow(new THREE.Vector3(x,y,z),col,s*4);
+});
+
+// ── TUNNEL WALLS: ring cross-sections along path ─────────────────
+for(let t=0;t<=1;t+=0.04){
+  const pos=camPath.getPoint(t);
+  const r=18+Math.random()*8;
+  const segs=32;
+  const pts=[];
+  for(let i=0;i<=segs;i++){
+    const a=(i/segs)*Math.PI*2;
+    pts.push(new THREE.Vector3(Math.cos(a)*r,Math.sin(a)*r,0));
+  }
+  const lg=new THREE.BufferGeometry().setFromPoints(pts);
+  const lm=new THREE.LineLoop(lg,new THREE.LineBasicMaterial({color:0x00ffaa,transparent:true,opacity:.04+Math.random()*.03,blending:THREE.AdditiveBlending}));
+  lm.position.copy(pos);
+  lm.lookAt(t<.99?camPath.getPoint(t+.01):camPath.getPoint(t-.01));
+  scene.add(lm);
+}
+
+// ── PARTICLE FIELD ───────────────────────────────────────────────
+const PC=5000;
+const pGeo=new THREE.BufferGeometry();
+const pp=new Float32Array(PC*3),pc=new Float32Array(PC*3);
+for(let i=0;i<PC;i++){
+  pp[i*3]=(Math.random()-.5)*60;
+  pp[i*3+1]=(Math.random()-.5)*40;
+  pp[i*3+2]=(Math.random()-.5)*100-30;
+  const g=Math.random()>.4;
+  pc[i*3]=g?.1:.9;pc[i*3+1]=g?.9:.22;pc[i*3+2]=g?.4:.35;
+}
+pGeo.setAttribute('position',new THREE.Float32BufferAttribute(pp,3));
+pGeo.setAttribute('color',new THREE.Float32BufferAttribute(pc,3));
+const pMesh=new THREE.Points(pGeo,new THREE.PointsMaterial({size:.1,vertexColors:true,transparent:true,opacity:.6,blending:THREE.AdditiveBlending,depthWrite:false,sizeAttenuation:true}));
+scene.add(pMesh);
+
+// ── INTERACTIVE: draggable torus knot ───────────────────────────
+let dragging=false,dragStart={x:0,y:0},tkAutoRot=true;
+let tkRotX=0,tkRotY=0,tkVelX=0,tkVelY=0;
+const raycaster=new THREE.Raycaster();
+const mpv=new THREE.Vector2();
+
+// Hit-test sphere for the knot
+const hitSphere=new THREE.Mesh(new THREE.SphereGeometry(6,16,16),new THREE.MeshBasicMaterial({transparent:true,opacity:0}));
+hitSphere.position.copy(tkWire.position);scene.add(hitSphere);
+
+document.getElementById('c').addEventListener('mousedown',e=>{
+  mpv.x=(e.clientX/W())*2-1;mpv.y=-(e.clientY/H())*2+1;
+  raycaster.setFromCamera(mpv,camera);
+  if(raycaster.intersectObject(hitSphere).length&&currentSec===0){
+    dragging=true;dragStart={x:e.clientX,y:e.clientY};tkAutoRot=false;
+  }
+});
+document.getElementById('c').addEventListener('mousemove',e=>{
+  if(!dragging)return;
+  tkVelX=(e.clientY-dragStart.y)*.008;
+  tkVelY=(e.clientX-dragStart.x)*.008;
+  tkRotX+=tkVelX;tkRotY+=tkVelY;
+  dragStart={x:e.clientX,y:e.clientY};
+});
+document.addEventListener('mouseup',()=>dragging=false);
+
+// ── SECTION SYSTEM ───────────────────────────────────────────────
+// Map section index to t parameter on camPath (0→1)
+const SEC_T=[0, .33, .66, 1.0];
+let currentSec=0, targetT=0, currentT=0;
+const SEC_IDS=['s0','s1','s2','s3'];
+const NAV_IDS2=['nb0','nb1','nb2',null];
+let scrollLocked=false;
+
+function goSec(i){
+  if(i===currentSec)return;
+  document.querySelectorAll('.sec').forEach(s=>s.classList.remove('show'));
+  document.querySelectorAll('.dot').forEach(d=>d.classList.remove('on'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  currentSec=i;
+  document.getElementById(SEC_IDS[i]).classList.add('show');
+  document.querySelectorAll('.dot')[i].classList.add('on');
+  if(NAV_IDS2[i])document.getElementById(NAV_IDS2[i]).classList.add('active');
+  targetT=SEC_T[i];
+  document.getElementById('pb').style.width=(i/3*100)+'%';
+  const onHome=i===0;
+  document.getElementById('stats').style.opacity=onHome?1:0;
+  document.getElementById('countdown').style.opacity=onHome?1:0;
+  document.getElementById('scroll-hint').style.opacity=onHome?1:0;
+}
+window.addEventListener('wheel',e=>{
+  if(scrollLocked||document.getElementById('mo').classList.contains('open'))return;
+  scrollLocked=true;
+  const d=e.deltaY>0?1:-1;
+  goSec(Math.max(0,Math.min(3,currentSec+d)));
+  setTimeout(()=>scrollLocked=false,1000);
+},{passive:true});
+window.addEventListener('keydown',e=>{
+  if(e.key==='ArrowDown')goSec(Math.min(3,currentSec+1));
+  if(e.key==='ArrowUp')goSec(Math.max(0,currentSec-1));
+  if(e.key==='Escape')cm();
+});
+let ty0=0;
+window.addEventListener('touchstart',e=>ty0=e.touches[0].clientY,{passive:true});
+window.addEventListener('touchend',e=>{const dy=ty0-e.changedTouches[0].clientY;if(Math.abs(dy)>45)goSec(Math.max(0,Math.min(3,currentSec+(dy>0?1:-1))));},{passive:true});
+
+// ── MOUSE PARALLAX ───────────────────────────────────────────────
+let mxr=0,myr=0,cmxr=0,cmyr=0;
+document.addEventListener('mousemove',e=>{
+  mxr=(e.clientX/W())*.14-.07;
+  myr=-(e.clientY/H())*.08+.04;
+});
+
+// ── ANIMATION ────────────────────────────────────────────────────
+let t2=0;
+const tmpV3=new THREE.Vector3();
+const tmpQ=new THREE.Quaternion();
+
+function lerp(a,b,f){return a+(b-a)*f;}
+
+function animate(){
+  requestAnimationFrame(animate);
+  t2+=.01;
+
+  // Smooth camera along path
+  currentT=lerp(currentT,targetT,.028);
+  cmxr=lerp(cmxr,mxr,.05);
+  cmyr=lerp(cmyr,myr,.05);
+
+  const camPos=camPath.getPoint(currentT);
+  const lookT=Math.min(currentT+.01,.999);
+  const lookPos=lookPath.getPoint(currentT);
+
+  // Apply mouse parallax offset
+  camera.position.set(camPos.x+cmxr*3, camPos.y+cmyr*2, camPos.z);
+  camera.lookAt(lookPos.x+cmxr*.5, lookPos.y+cmyr*.5, lookPos.z);
+
+  // Torus knot
+  if(tkAutoRot){tkWire.rotation.x+=.003;tkWire.rotation.y+=.005;}
+  else{
+    tkVelX=lerp(tkVelX,0,.07);tkVelY=lerp(tkVelY,0,.07);
+    tkRotX+=tkVelX;tkRotY+=tkVelY;
+    tkWire.rotation.x=tkRotX;tkWire.rotation.y=tkRotY;
+    if(!dragging&&Math.abs(tkVelX)<.0001&&Math.abs(tkVelY)<.0001)tkAutoRot=true;
+  }
+  tkInner.rotation.copy(tkWire.rotation);
+  hitSphere.rotation.copy(tkWire.rotation);
+
+  // Orbital rings
+  orbRings.forEach(r=>{r.rotation.x+=r.userData.rx;r.rotation.y+=r.userData.ry;});
+
+  // Floating nodes
+  nodeArr.forEach(n=>{const d=n.userData;n.position.y=d.bp.y+Math.sin(t2*d.sp*100+d.ph)*d.amp;});
+
+  // Cubes
+  cubes.forEach(c=>{c.rotation.x+=c.userData.rx;c.rotation.y+=c.userData.ry;c.position.y=c.userData.bp.y+Math.sin(t2*1.2+c.userData.ph)*.3;});
+
+  // Icos
+  icoArr.forEach(ic=>{ic.rotation.x+=ic.userData.rx;ic.rotation.y+=ic.userData.ry;ic.position.y=ic.userData.bp.y+Math.sin(t2*.9+ic.userData.ph)*.25;});
+
+  // Crystals
+  crystals.forEach(cr=>{cr.rotation.x+=cr.userData.rx;cr.rotation.y+=cr.userData.ry;cr.position.y=cr.userData.bp.y+Math.sin(t2*1.1+cr.userData.ph)*.3;});
+
+  // Lights pulse
+  pl1.intensity=3.5+Math.sin(t2*.7)*.8;
+  pl2.intensity=2.5+Math.sin(t2*1.1+1)*.6;
+
+  // Particle drift
+  pMesh.rotation.y+=.0003;
+
+  // Coord display
+  document.getElementById('coords').textContent=`X: ${camera.position.x.toFixed(2)}   Y: ${camera.position.y.toFixed(2)}   Z: ${camera.position.z.toFixed(2)}`;
+
+  renderer.render(scene,camera);
+}
+animate();
+
+window.addEventListener('resize',()=>{
+  camera.aspect=W()/H();camera.updateProjectionMatrix();
+  renderer.setSize(W(),H());
+});
+
+// =================================================================
+//  CURSOR
+// =================================================================
+const cr=document.getElementById('cr'),cdot=document.getElementById('cd');
+let cx=0,cy=0,rx2=0,ry2=0;
+document.addEventListener('mousemove',e=>{cx=e.clientX;cy=e.clientY;cdot.style.left=cx+'px';cdot.style.top=cy+'px';});
+(function animCur(){rx2=lerp(rx2,cx,.12);ry2=lerp(ry2,cy,.12);cr.style.left=rx2+'px';cr.style.top=ry2+'px';requestAnimationFrame(animCur);})();
+document.querySelectorAll('button,a,.track,.dot,.spk,.pass').forEach(el=>{el.addEventListener('mouseenter',()=>document.body.classList.add('hov'));el.addEventListener('mouseleave',()=>document.body.classList.remove('hov'));});
+
+// =================================================================
+//  MODAL DATA
+// =================================================================
+const MD={
+  ai:{tag:'Track 01 // AI & Cognition',title:'Neural Architectures',desc:'A full-immersion track exploring large language models, multimodal systems, emergent reasoning, and the science of machine cognition.',meta:[{k:'Date',v:'Oct 17–19'},{k:'Venue',v:'Hall A'},{k:'Sessions',v:'14'}]},
+  quantum:{tag:'Track 02 // Quantum',title:'Qubit Horizon',desc:'From NISQ-era applications to fault-tolerant quantum computing — hardware breakthroughs, quantum algorithms, and live programming with IBM & Google quantum processors.',meta:[{k:'Date',v:'Oct 17–18'},{k:'Venue',v:'Hall B'},{k:'Sessions',v:'9'}]},
+  bio:{tag:'Track 03 // Biotech',title:'Synthetic Biology',desc:'Gene editing, AI drug discovery, programmable organisms, and the ethics of redesigning life. CRISPR 3.0 demonstrations and wet-lab sessions.',meta:[{k:'Date',v:'Oct 18'},{k:'Venue',v:'Hall C'},{k:'Sessions',v:'11'}]},
+  rob:{tag:'Track 04 // Robotics',title:'Embodied Minds',desc:'Humanoid robotics, swarm intelligence, and the ethics of autonomous machines. Live robot demos, ROS2 bootcamps, and debates on machine rights.',meta:[{k:'Date',v:'Oct 17–19'},{k:'Venue',v:'Hall D'},{k:'Sessions',v:'10'}]},
+  space:{tag:'Track 05 // Space Tech',title:'Orbital Systems',desc:'Satellite autonomy, Mars mission architectures, and deep-space communication protocols. Hear from ISRO engineers and private space ventures.',meta:[{k:'Date',v:'Oct 18–19'},{k:'Venue',v:'Hall E'},{k:'Sessions',v:'7'}]},
+  sec:{tag:'Track 06 // Security',title:'Zero Perimeter',desc:'Post-quantum cryptography, AI red-teaming, adversarial ML, and the dark side of generative models. CTF competition and live red vs blue team exercises.',meta:[{k:'Date',v:'Oct 17–19'},{k:'Venue',v:'Hall F'},{k:'Sessions',v:'8'}]},
+  sp_aria:{tag:'Keynote Speaker',title:'Dr. Aria Kwan',desc:'Chief AI Scientist at NeuraLab. Her keynote asks: can a machine truly understand — or only simulate understanding? Pioneering research in artificial consciousness.',meta:[{k:'Oct 17',v:'09:30'},{k:'Venue',v:'Grand Aud.'},{k:'Duration',v:'75 min'}]},
+  sp_marco:{tag:'Keynote Speaker',title:'Marco Vasquez',desc:'CTO of QuantumBridge. Led error correction research setting new quantum coherence records. Live data from their 1000-qubit processor.',meta:[{k:'Oct 17',v:'14:00'},{k:'Venue',v:'Grand Aud.'},{k:'Duration',v:'60 min'}]},
+  sp_yuki:{tag:'Keynote Speaker',title:'Yuki Nishida',desc:'Founder of EmbodiedAI. Live robot demonstrations and a controversial framework for machine sentience. Argues embodiment is necessary for AGI.',meta:[{k:'Oct 18',v:'10:00'},{k:'Venue',v:'Grand Aud.'},{k:'Duration',v:'60 min'}]},
+  sp_priya:{tag:'Keynote Speaker',title:'Dr. Priya Shah',desc:'Head of Genomics at BioForge. Her keynote unveils the first human trial results of CRISPR 3.0 — the most anticipated announcement at Techfest 2026.',meta:[{k:'Oct 19',v:'09:00'},{k:'Venue',v:'Grand Aud.'},{k:'Duration',v:'75 min'}]},
+};
+function om(k){
+  const d=MD[k];if(!d)return;
+  document.getElementById('mtag').textContent=d.tag;
+  document.getElementById('mttl').textContent=d.title;
+  document.getElementById('mdesc').textContent=d.desc;
+  document.getElementById('mmeta').innerHTML=d.meta.map(m=>`<div class="mk"><div class="mk-l">${m.k}</div><div class="mk-v">${m.v}</div></div>`).join('');
+  document.getElementById('mo').classList.add('open');
+}
+function cm(){document.getElementById('mo').classList.remove('open');}
+
+// =================================================================
+//  REGISTRATION
+// =================================================================
+let selPassV='';
+function selPass(el,v){document.querySelectorAll('.pass').forEach(p=>p.classList.remove('sel'));el.classList.add('sel');selPassV=v;}
+function subReg(){
+  const fn=document.getElementById('fn').value.trim();
+  const em=document.getElementById('em').value.trim();
+  const trk=document.getElementById('trk').value;
+  if(!fn||!em||!trk){
+    [document.getElementById('fn'),document.getElementById('em'),document.getElementById('trk')].forEach(el=>{if(!el.value.trim()){el.style.borderColor='#ff507a';setTimeout(()=>el.style.borderColor='',1500);}});
+    return;
+  }
+  document.getElementById('fv').style.display='none';
+  document.getElementById('succ').style.display='block';
+  // Flash scene green
+  pl1.intensity=12;pl1.color.set(0xffe500);
+  setTimeout(()=>{pl1.intensity=4;pl1.color.set(0x00ffaa);},2000);
+}
+
+// =================================================================
+//  TICKER
+// =================================================================
+const EVT=[
+  'Oct 17 09:30 — Neural Architectures Keynote · Dr. Aria Kwan',
+  'Oct 17 11:00 — LLM Fine-Tuning Workshop · Hall A',
+  'Oct 17 14:00 — Qubit Horizon Keynote · Marco Vasquez',
+  'Oct 17 16:00 — CTF Competition Kickoff · Hall F',
+  'Oct 18 10:00 — Embodied Minds Keynote · Yuki Nishida',
+  'Oct 18 13:00 — CRISPR 3.0 Live Demo · Hall C',
+  'Oct 18 15:00 — Orbital Simulation Workshop · Hall E',
+  'Oct 19 09:00 — CRISPR Human Trials · Dr. Priya Shah',
+  'Oct 19 14:00 — Closing Ceremony · Grand Auditorium',
+];
+const ti=document.getElementById('ti');
+const html=[...EVT,...EVT].map(e=>`<div class="ti-item">${e}</div>`).join('');
+ti.innerHTML=html+html;
+
+// =================================================================
+//  COUNTDOWN
+// =================================================================
+const FEST=new Date('2026-10-17T09:00:00');
+function tick(){
+  const diff=FEST-new Date();
+  if(diff<0)return;
+  document.getElementById('cdd').textContent=String(Math.floor(diff/864e5)).padStart(2,'0');
+  document.getElementById('cdh').textContent=String(Math.floor(diff%864e5/36e5)).padStart(2,'0');
+  document.getElementById('cdm').textContent=String(Math.floor(diff%36e5/6e4)).padStart(2,'0');
+  document.getElementById('cds').textContent=String(Math.floor(diff%6e4/1e3)).padStart(2,'0');
+}
+tick();setInterval(tick,1000);
+
+document.getElementById('c').addEventListener('contextmenu',e=>e.preventDefault());
+</script>
+</body>
+</html>
